@@ -1,0 +1,127 @@
+.TH rundeck-run 1 "Mon Jul 13 16:11:10 PDT 2015" "Version 1.0.0" "RERUN User Manual" 
+.SH NAME
+rundeck-run \- run something in rundeck
+.PP
+.SH SYNOPSIS
+.PP
+\f[CR] 
+rerun [ARGS] rundeck-run: [ job | output-text | status ] [OPTIONS]
+\f[]
+
+.SH COMMANDS
+.SH rundeck-run:job \f[][--filter <>] --id <> [--args <>] --server-url <"${SERVER_URL:-}"> --api-token <${API_TOKEN:-}>
+
+execute the job
+.PP
+\f[I]OPTIONS\f[]
+.TP
+.B \--filter \f[]node filter\f[]
+required: \f[I]false\f[] ,
+arguments: \f[I]true\f[]
+.RS
+.RE
+.TP
+.B \--id \f[]the unique identifier\f[]
+required: \f[I]true\f[] ,
+arguments: \f[I]true\f[]
+.RS
+.RE
+.TP
+.B \--args \f[]args to pass to the job\f[]
+required: \f[I]false\f[] ,
+arguments: \f[I]true\f[]
+.RS
+.RE
+.TP
+.B \--server-url \f[]rundeck base url\f[]
+required: \f[I]true\f[] ,
+arguments: \f[I]true\f[]
+, default: \f[I]http://localhost:4440\f[]
+.RS
+.RE
+.TP
+.B \--api-token \f[]the API access token\f[]
+required: \f[I]true\f[] ,
+arguments: \f[I]true\f[]
+, default: \f[I]5zaWq0zNF6MvmNGcU42k0LDOx6Hs4cy6\f[]
+.RS
+.RE
+.SH rundeck-run:output-text \f[]--id <> [--last-lines <>] [--format <text>] --server-url <"${SERVER_URL:-}"> --api-token <${API_TOKEN:-}>
+
+print execution output to stdout
+.PP
+\f[I]OPTIONS\f[]
+.TP
+.B \--id \f[]the unique identifier\f[]
+required: \f[I]true\f[] ,
+arguments: \f[I]true\f[]
+.RS
+.RE
+.TP
+.B \--last-lines \f[]only show specified number of lines\f[]
+required: \f[I]false\f[] ,
+arguments: \f[I]true\f[]
+.RS
+.RE
+.TP
+.B \--format \f[]the text format (text|plain|json)\f[]
+required: \f[I]false\f[] ,
+arguments: \f[I]true\f[]
+, default: \f[I]text\f[]
+.RS
+.RE
+.TP
+.B \--server-url \f[]rundeck base url\f[]
+required: \f[I]true\f[] ,
+arguments: \f[I]true\f[]
+, default: \f[I]http://localhost:4440\f[]
+.RS
+.RE
+.TP
+.B \--api-token \f[]the API access token\f[]
+required: \f[I]true\f[] ,
+arguments: \f[I]true\f[]
+, default: \f[I]5zaWq0zNF6MvmNGcU42k0LDOx6Hs4cy6\f[]
+.RS
+.RE
+.SH rundeck-run:status \f[]--id <> --server-url <"${SERVER_URL:-}"> --api-token <${API_TOKEN:-}> [--detail <>]
+
+check a rundeck execution status
+.PP
+\f[I]OPTIONS\f[]
+.TP
+.B \--id \f[]the unique identifier\f[]
+required: \f[I]true\f[] ,
+arguments: \f[I]true\f[]
+.RS
+.RE
+.TP
+.B \--server-url \f[]rundeck base url\f[]
+required: \f[I]true\f[] ,
+arguments: \f[I]true\f[]
+, default: \f[I]http://localhost:4440\f[]
+.RS
+.RE
+.TP
+.B \--api-token \f[]the API access token\f[]
+required: \f[I]true\f[] ,
+arguments: \f[I]true\f[]
+, default: \f[I]5zaWq0zNF6MvmNGcU42k0LDOx6Hs4cy6\f[]
+.RS
+.RE
+.TP
+.B \--detail \f[]show more detail\f[]
+required: \f[I]false\f[] ,
+arguments: \f[I]false\f[]
+.RS
+.RE ; # command section done.
+
+.SH RETURN VALUES
+.PP
+Successful completion: 0
+.SH AUTHORS
+alexh
+.SH "SEE ALSO"
+rerun
+.SH KEYWORDS
+rundeck-run

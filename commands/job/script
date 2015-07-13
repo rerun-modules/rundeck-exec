@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+
+# To implement this command, edit the "Command implementation" section below. 
+
+# Usage
+# -----
+
+# Comments prefixed with `#/` are managed by stubbs.
+# The `command` and `usage` comments describe the command
+# and show its options.
+# 
+#/ command: rundeck-run:job: "execute the job"
+#/ usage: rerun rundeck-run:job [ --filter <>]  --id <> [ --args <>]  --server-url <"${SERVER_URL:-}">  --api-token <${API_TOKEN:-}> 
+
+# Load common functions
+# ---------------------
+
+# Load the function library for this module.
+# This loads rerun functions, too.
+. $RERUN_MODULE_DIR/lib/functions.sh job || { 
+  echo >&2 "Failed loading function library." ; exit 1 ; 
+}
+
+# Error handling
+# ---------------
+
+# This script is designed to _fail-fast_.
+
+# Trap errors and exit. The call to `rerun_die` will print the
+# the error message and exit with the error command exit status. 
+
+trap 'rerun_die $? "*** command failed: rundeck-run:job. ***"' ERR
+
+# Run [set] `nounset` to treat unset variables as errors. Set [pipefail]
+# so a pipeline return status is the value of the last 
+# (rightmost) command to exit with non-zero status.
+#
+# [set]: http://ss64.com/bash/set.html
+# [pipefail]: http://www.gnu.org/software/bash/manual/html_node/Pipelines.html
+
+set -o nounset -o pipefail
+
+# Command variables
+# -----------------
+
+# This command script can access the following variables
+# declared by `rerun` or by the option parser function.
+
+#/ rerun-variables: RERUN, RERUN_VERSION, RERUN_MODULES, RERUN_MODULE_DIR
+#/ option-variables: FILTER ID ARGS SERVER_URL API_TOKEN
+
+# The `rerun_options_parse` function processes the command line
+# arguments. Each accepted command line flag results in setting 
+# one the corresponding option variables.
+
+rerun_options_parse "$@"
+
+# Command implementation
+# ----------------------
+
+CURL_OUT=$(mktemp -t curl.out.XXXXXXXXXX)
+
+
+[[ -n ${FILTER:-} ]] && nodefilter="filter=$FILTER"
+
+if ! http_code=$(rundeck_curl -w "%{http_code}" \
+	-H "X-Rundeck-Auth-Token: $API_TOKEN" \
+	-H 'Accept: application/xml' \
+	--data-urlencode "${nodefilter:-}" \
+	--data-urlencode "argString=${ARGS:-}" \
+    -X POST "${SERVER_URL}/api/12/job/$ID/run" \
+    -o $CURL_OUT 2>/dev/null)
+then
+    case ${http_code:-} in
+    	20*) : ;; # successful request
+    	404) rerun_die 3 "No job by that ID?" ;;
+    	409) rerun_die 3 "The job is already running and does not allow multiple executions" ;;
+		* ) rerun_die 3 "API error (HTTP response: $http_code, GET ${SERVER_URL}/api/12/job/$ID/run)." ;;
+	esac  
+fi
+
+# <executions count='1'>
+#   <execution id='121' href='http://Targa-2.local:4440/execution/follow/121' status='running' project='rundeck-rerun'>
+#     <user>admin</user>
+#     <date-started unixtime='1436497009777'>2015-07-10T02:56:49Z</date-started>
+#     <job id='058565f0-a85c-4780-bbc8-5908772e2bbd' averageDuration='290'>
+#       <name>fun</name>
+#       <group></group>
+#       <project>rundeck-rerun</project>
+#       <description></description>
+#     </job>
+#     <description>Plugin[rundeck-plugin-examples:hello, nodeStep: false]</description>
+#     <argstring />
+#   </execution>
+#cat $CURL_OUT
+
+project=$(xmlstarlet sel -t -m "//execution" -v @project $CURL_OUT)
+status=$(xmlstarlet sel -t -m "//execution" -v @status $CURL_OUT)
+name=$(xmlstarlet sel -t -m "//execution/job" -v name $CURL_OUT)
+user=$(xmlstarlet sel -t -m "//execution" -v user $CURL_OUT)
+! group=$(xmlstarlet sel -t -m "//execution/job" -v group $CURL_OUT) && :
+averageDuration=$(xmlstarlet sel -t -m "//execution/job" -v @averageDuration $CURL_OUT)
+execId=$(xmlstarlet sel -t -m "//execution" -v @id $CURL_OUT)
+href=$(xmlstarlet sel -t -m "//execution" -v @href $CURL_OUT)
+
+# Print the output message
+
+printf "%s execution - [%s: %s/%s] - %s - %ss average-duration - by %s\n" \
+	"$execId" "$project" "$group" "$name" "$status" "$(($averageDuration/1000))" "$user"
+
+rm $CURL_OUT
+# Done. Exit with last command exit status.
+exit $?

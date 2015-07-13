@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv='content-type' content='text/html;charset=utf-8'>
+    <title>output-text</title>
+    <link rel="stylesheet" media="all" href="http://jashkenas.github.io/docco/resources/linear/public/stylesheets/normalize.css" />
+    <link rel="stylesheet" media="all" href="http://jashkenas.github.io/docco/resources/linear/docco.css" />
+</head>
+<body>
+<div class="container">
+  <div class="page">
+        <div class="header"><h1>output-text</h1></div>
+        <p>To implement this command, edit the "Command implementation" section below.</p>
+
+<div class="highlight"><pre>
+<span class="c">#!/usr/bin/env bash</span>
+
+
+</pre></div>
+
+<h2>Usage</h2>
+
+<div class="highlight"><pre>
+
+</pre></div>
+
+<p>Comments prefixed with <code>#/</code> are managed by stubbs.
+The <code>command</code> and <code>usage</code> comments describe the command
+and show its options.</p>
+
+<div class="highlight"><pre>
+<span class="c">#/ command: rundeck-run:output-text: &quot;print execution output to stdout&quot;</span>
+<span class="c">#/ usage: rerun rundeck-run:output-text  --id &lt;&gt; [ --last-lines &lt;&gt;] [ --format &lt;text&gt;]  --server-url &lt;&quot;${SERVER_URL:-}&quot;&gt;  --api-token &lt;&gt; </span>
+
+</pre></div>
+
+<h2>Load common functions</h2>
+
+<div class="highlight"><pre>
+
+</pre></div>
+
+<p>Load the function library for this module.
+This loads rerun functions, too.</p>
+
+<div class="highlight"><pre>
+. <span class="nv">$RERUN_MODULE_DIR</span>/lib/functions.sh output-text <span class="o">||</span> <span class="o">{</span> 
+  <span class="nb">echo</span> &gt;&amp;2 <span class="s2">&quot;Failed loading function library.&quot;</span> ; <span class="nb">exit </span>1 ; 
+<span class="o">}</span>
+
+</pre></div>
+
+<h2>Error handling</h2>
+
+<div class="highlight"><pre>
+
+</pre></div>
+
+<p>This script is designed to <em>fail-fast</em>.</p>
+
+<div class="highlight"><pre>
+
+</pre></div>
+
+<p>Trap errors and exit. The call to <code>rerun_die</code> will print the
+the error message and exit with the error command exit status. </p>
+
+<div class="highlight"><pre>
+
+<span class="nb">trap</span> <span class="s1">&#39;rerun_die $? &quot;*** command failed: rundeck-run:output-text. ***&quot;&#39;</span> ERR
+
+</pre></div>
+
+<p>Run [set] <code>nounset</code> to treat unset variables as errors. Set [pipefail]
+so a pipeline return status is the value of the last 
+(rightmost) command to exit with non-zero status.</p>
+
+<div class="highlight"><pre>
+
+<span class="nb">set</span> -o nounset -o pipefail
+
+</pre></div>
+
+<h2>Command variables</h2>
+
+<div class="highlight"><pre>
+
+</pre></div>
+
+<p>This command script can access the following variables
+declared by <code>rerun</code> or by the option parser function.</p>
+
+<div class="highlight"><pre>
+
+<span class="c">#/ rerun-variables: RERUN, RERUN_VERSION, RERUN_MODULES, RERUN_MODULE_DIR</span>
+<span class="c">#/ option-variables: ID LAST_LINES FORMAT SERVER_URL API_TOKEN</span>
+
+</pre></div>
+
+<p>The <code>rerun_options_parse</code> function processes the command line
+arguments. Each accepted command line flag results in setting 
+one the corresponding option variables.</p>
+
+<div class="highlight"><pre>
+
+rerun_options_parse <span class="s2">&quot;$@&quot;</span>
+
+
+</pre></div>
+
+<h2>Command implementation</h2>
+
+<div class="highlight"><pre>
+
+<span class="nv">CURL_OUT</span><span class="o">=</span><span class="k">$(</span>mktemp -t curl.out.XXXXXXXXXX<span class="k">)</span>
+
+<span class="nv">params</span><span class="o">=</span><span class="s2">&quot;format=$FORMAT&quot;</span>
+<span class="o">[[</span> -n <span class="s2">&quot;${LAST_LINES:-}&quot;</span> <span class="o">]]</span> <span class="o">&amp;&amp;</span> <span class="nv">params</span><span class="o">=</span><span class="s2">&quot;$params&amp;lastlines=$LAST_LINES&quot;</span>
+
+<span class="k">if</span> ! <span class="nv">http_code</span><span class="o">=</span><span class="k">$(</span>rundeck_curl -w <span class="s2">&quot;%{http_code}&quot;</span> <span class="se">\</span>
+	-H <span class="s2">&quot;X-Rundeck-Auth-Token: $API_TOKEN&quot;</span> <span class="se">\</span>
+	-H <span class="s1">&#39;Accept: text/plain&#39;</span> <span class="se">\</span>
+    -X GET <span class="s2">&quot;${SERVER_URL}/api/12/execution/$ID/output?$params&quot;</span> <span class="se">\</span>
+    -o <span class="nv">$CURL_OUT</span> 2&gt;/dev/null<span class="k">)</span>
+<span class="k">then</span>
+<span class="k">    case</span> <span class="k">${</span><span class="nv">http_code</span><span class="k">:-}</span> in
+    	204<span class="o">)</span> : ;; <span class="c"># successful removal</span>
+    	404<span class="o">)</span> rerun_die 3 <span class="s2">&quot;Execution not found: $ID&quot;</span> ;;
+		* <span class="o">)</span> rerun_die 3 <span class="s2">&quot;API error (HTTP response: $http_code, GET ${SERVER_URL}/api/12/execution/$ID).&quot;</span> ;;
+	<span class="k">esac  </span>
+<span class="k">fi</span>
+
+cat <span class="nv">$CURL_OUT</span> <span class="o">&amp;&amp;</span> rm <span class="nv">$CURL_OUT</span>
+
+</pre></div>
+
+<p>Done. Exit with last command exit status.</p>
+
+<div class="highlight"><pre>
+<span class="nb">exit</span> <span class="nv">$?</span>
+
+
+
+<div class="highlight"><pre>
+</pre></div>
+
+</pre></div>
+<div class="highlight"><pre>
+
+</pre></div>
+  </div>
+  <div class="fleur">h</div>
+
+</div>
+</body>
+</html>

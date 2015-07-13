@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+
+# To implement this command, edit the "Command implementation" section below. 
+
+# Usage
+# -----
+
+# Comments prefixed with `#/` are managed by stubbs.
+# The `command` and `usage` comments describe the command
+# and show its options.
+# 
+#/ command: rundeck-run:status: "check a rundeck execution status"
+#/ usage: rerun rundeck-run:status  --id <>  --server-url <"${SERVER_URL:-}">  --api-token <${API_TOKEN:-}> [ --detail] 
+
+# Load common functions
+# ---------------------
+
+# Load the function library for this module.
+# This loads rerun functions, too.
+. $RERUN_MODULE_DIR/lib/functions.sh status || { 
+  echo >&2 "Failed loading function library." ; exit 1 ; 
+}
+
+# Error handling
+# ---------------
+
+# This script is designed to _fail-fast_.
+
+# Trap errors and exit. The call to `rerun_die` will print the
+# the error message and exit with the error command exit status. 
+
+trap 'rerun_die $? "*** command failed: rundeck-run:status. ***"' ERR
+
+# Run [set] `nounset` to treat unset variables as errors. Set [pipefail]
+# so a pipeline return status is the value of the last 
+# (rightmost) command to exit with non-zero status.
+#
+# [set]: http://ss64.com/bash/set.html
+# [pipefail]: http://www.gnu.org/software/bash/manual/html_node/Pipelines.html
+
+set -o nounset -o pipefail
+
+# Command variables
+# -----------------
+
+# This command script can access the following variables
+# declared by `rerun` or by the option parser function.
+
+#/ rerun-variables: RERUN, RERUN_VERSION, RERUN_MODULES, RERUN_MODULE_DIR
+#/ option-variables: ID SERVER_URL API_TOKEN DETAIL
+
+# The `rerun_options_parse` function processes the command line
+# arguments. Each accepted command line flag results in setting 
+# one the corresponding option variables.
+
+rerun_options_parse "$@"
+
+
+# Command implementation
+# ----------------------
+
+CURL_OUT=$(mktemp -t curl.out.XXXXXXXXXX)
+
+! DATE=$(which gdate) && DATE=date
+tstamp=$($DATE +%s%3N)
+
+
+if ! http_code=$(rundeck_curl -w "%{http_code}" \
+	-H 'Accept: application/xml' \
+	-H "X-Rundeck-Auth-Token: $API_TOKEN" \
+    -X GET "${SERVER_URL}/api/12/execution/$ID" \
+    -o $CURL_OUT 2>/dev/null)
+then
+    case ${http_code:-} in
+    	404) rerun_die 3 "Failed getting status" ;;
+		* ) rerun_die 3 "API error (HTTP response: $http_code, GET ${SERVER_URL}/api/12/execution/$ID)." ;;
+	esac  
+fi
+
+#cat $CURL_OUT; echo
+project=$(xmlstarlet sel -t -m "//execution" -v @project $CURL_OUT)
+status=$(xmlstarlet sel -t -m "//execution" -v @status $CURL_OUT)
+name=$(xmlstarlet sel -t -m "//execution/job" -v name $CURL_OUT)
+! group=$(xmlstarlet sel -t -m "//execution/job" -v group $CURL_OUT) && :
+dateStarted=$(xmlstarlet sel -t -m "//execution/date-started" -v @unixtime $CURL_OUT)
+! dateEnded=$(xmlstarlet sel -t -m "//execution/date-ended" -v @unixtime $CURL_OUT) && :
+execId=$(xmlstarlet sel -t -m "//execution" -v @id $CURL_OUT)
+averageDuration=$(xmlstarlet sel -t -m "//execution/job" -v @averageDuration $CURL_OUT)
+
+case "$status" in
+	succeeded|failed|aborted) 
+		duration=$(( ($dateEnded - $dateStarted) / 1000 ))
+		printf "%s execution - [%s: %s/%s] - %s - %ss duration\n" \
+			"$execId" "$project" "$group" "$name" "$status" "$duration"
+		;;
+	running) 
+		# Figure out elapsed time
+		elapsed_millis=$(( $tstamp - $dateStarted ))
+		elapsed_secs=$(( $elapsed_millis / 1000 ))
+		pct_complete=$(echo "scale=1; $elapsed_millis/$averageDuration *100" | bc)
+
+		printf "%s execution - [%s: %s/%s] - %s - %ss elapsed (~%s%%)\n" \
+			"$execId" "$project" "$group" "$name" "$status" "$elapsed_secs" "$pct_complete"
+		;;		
+esac
+
+[[ -n "$DETAIL" ]] && {
+	description=$(xmlstarlet sel -t -m "//execution" -v description $CURL_OUT)
+	argstring=$(xmlstarlet sel -t -m "//execution" -v argstring $CURL_OUT)
+	printf "description: %s\n" "$description"
+	printf "argstring: %s\n" "$argstring"
+
+	if ! successfulNodes=$(xmlstarlet sel -t -m "//successfulNodes/node" -v @name -o " " $CURL_OUT)
+	then
+		:; # there were no successful nodes
+	else
+		printf "successful-nodes: %s\n" "$successfulNodes"				
+	fi
+
+	if ! failedNodes=$(xmlstarlet sel -t -m "//failedNodes/node" -v @name -o " " $CURL_OUT)
+	then
+		:; # no failed nodes
+	else 
+		# there were failed nodes.
+		printf "failed-nodes: %s\n" "$failedNodes"
+	fi
+}
+
+# Done. Exit with last command exit status.
+exit $?
+

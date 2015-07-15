@@ -17,6 +17,15 @@ Get status information about it:
 	rerun rundeck-run:status --id 977
 	* 977 execution - [myproject: myjob] - running - 5s elapsed (~70.0%)
 
+The command prints execution info, separated by hyphens:
+
+* ExecId: The first number is the execution identifier (eg `977`).
+* Job project and name: (eg, `[myproject: myjob]`)
+* Status: Execution state: (eg `running`).
+* Time elapsed: Time duration since job execution started (eg. `5s`)
+* Percent of average execution: The average duration is used to calculate an estimated percent completion (e.g., `~70%`).
+
+
 When the job succeeds the status will change from 'running' to 'succeeded':
 
 	rerun rundeck-run:status --id 977

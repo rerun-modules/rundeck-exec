@@ -26,7 +26,9 @@ You can then get the output
 	output from my job
 	output from my job
 
-Get just the last lines
+#### Get the last lines
+
+You can specify how many lines of the execution output to get via the `--last-lines <>` option:
 
 	run output-text --id 977 --last-lines 1
 	output from my job
@@ -39,7 +41,7 @@ It does not include execution metadata. This is available as xml or json
 	run output-text --id 977 --last-lines 1 --format xml
 
 Will produce output similar to:
-	
+
 	<output>
 	  <id>977</id>
 	  <offset>7397</offset>

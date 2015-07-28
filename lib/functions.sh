@@ -1,4 +1,4 @@
-# Shell functions for the rundeck-run module.
+# Shell functions for the rundeck-exec module.
 #/ usage: source RERUN_MODULE_DIR/lib/functions.sh command
 #
 

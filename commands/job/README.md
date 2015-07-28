@@ -9,7 +9,7 @@ Export the server url and api-token so you dont have to set them as command opti
 #### Run a job
 Run the job specified by it's identifier:
 
-	rerun rundeck-run:job --id 4ece2781-bc42-43c5-93b0-46638a52fed5
+	rerun rundeck-exec:job --id 4ece2781-bc42-43c5-93b0-46638a52fed5
     * 977 execution - [myproject: myjob] - running - 7s average-duration - by alexh
 
 The command prints execution info, separated by hyphens:
@@ -25,7 +25,7 @@ The command prints execution info, separated by hyphens:
 
 You can override the nodefilters and pass arguments using the `--filter` and `--args` options:
 
-	rerun rundeck-run:job --id 4ece2781-bc42-43c5-93b0-46638a52fed5 \
+	rerun rundeck-exec:job --id 4ece2781-bc42-43c5-93b0-46638a52fed5 \
 		--filter 'tags:www' --args '-optA valueA'
 
 
